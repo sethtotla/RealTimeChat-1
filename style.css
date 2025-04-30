@@ -1,0 +1,13 @@
+.container {
+        
+}
+
+.bottom-element {
+        position: fixed;
+bottom: 0;
+left: 0;
+width: 100%;
+background: lightgray;
+padding: 10px;
+text-align: center;
+}

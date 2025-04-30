@@ -1,0 +1,8 @@
+const firebaseConfig = {
+apiKey: "AIzaSyA_uTB1oy0aTBoKW5R6kAmBgUZOy26SQfU",
+authDomain: "chit-chat-3da60.firebaseapp.com",
+projectId: "chit-chat-3da60",
+storageBucket: "chit-chat-3da60.firebasestorage.app",
+messagingSenderId: "380435137882",
+appId: "1:380435137882:web:3c974637c638c792681f63"
+};

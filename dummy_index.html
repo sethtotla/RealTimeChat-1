@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WhatsApp Chat Screen</title>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #e5ddd5;
+    }
+    .chat-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: #fff;
+    }
+    .header {
+      background-color: #075e54;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header input {
+      background-color: #075e54;
+      color: white;
+      font-size: 18px;
+      border: 1px solid whitesmoke;
+      outline: none;
+      width: 100%;
+    }
+    .chat-area {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      background-color: #e5ddd5;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 70px;
+    }
+    .message {
+      margin: 5px 0;
+      padding: 8px 12px;
+      border-radius: 10px;
+      max-width: 70%;
+      display: inline-block;
+      word-wrap: break-word;
+    }
+    .user1 {
+      background-color: #dcf8c6;
+      align-self: flex-start;
+    }
+    .user2 {
+      background-color: #fff;
+      align-self: flex-end;
+    }
+    .message .meta {
+      color: red;
+      font-size: 12px;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .message .text {
+      color: black;
+      font-size: 15px;
+    }
+    .input-area {
+      display: flex;
+      padding: 10px;
+      background-color: #fff;
+      border-top: 1px solid #ccc;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .input-area input {
+      flex: 1;
+      padding: 14px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      margin-right: 10px;
+    }
+    .input-area button {
+      background-color: #075e54;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 14px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="chat-container">
+    <div class="header">
+      <input type="text" id="contactName" placeholder="Enter Your Name Here...." required/ >
+    </div>
+
+    <div class="chat-area" id="chatArea">
+      <!-- Messages will appear here dynamically -->
+    </div>
+
+    <div class="input-area">
+      <input type="text" id="messageInput" placeholder="Type a message..."/>
+      <button id="sendButton">Send</button>
+    </div>
+  </div>
+
+  <script>
+    // Your Firebase Config Here
+    const firebaseConfig = {
+      apiKey: "YOUR-API-KEY",
+      authDomain: "YOUR-PROJECT-ID.firebaseapp.com",
+      databaseURL: "https://YOUR-PROJECT-ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR-PROJECT-ID",
+      storageBucket: "YOUR-PROJECT-ID.appspot.com",
+      messagingSenderId: "SENDER-ID",
+      appId: "APP-ID"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    const input = document.getElementById('messageInput');
+    const chatArea = document.getElementById('chatArea');
+    const sendButton = document.getElementById('sendButton');
+    const contactName = document.getElementById('contactName');
+
+    sendButton.addEventListener('click', sendMessage);
+    input.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    function sendMessage() {
+      const text = input.value.trim();
+      const senderName = contactName.value.trim();
+
+      if (text !== "" && senderName !== "") {
+        const now = new Date();
+        const time = now.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        const message = {
+          text: text,
+          time: time,
+          senderName: senderName
+        };
+
+        database.ref('messages').push(message);
+
+        input.value = "";
+      }
+    }
+
+    // Listen for new messages
+    database.ref('messages').on('child_added', function (snapshot) {
+      const msg = snapshot.val();
+      const currentUserName = contactName.value.trim();
+
+      const div = document.createElement('div');
+      div.className = 'message ' + (msg.senderName === currentUserName ? 'user2' : 'user1');
+
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      meta.textContent = `[${msg.time}] ${msg.senderName}`;
+
+      const text = document.createElement('span');
+      text.className = 'text';
+      text.textContent = msg.text;
+
+      div.appendChild(meta);
+      div.appendChild(text);
+
+      chatArea.appendChild(div);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    });
+  </script>
+</body>
+</html>
