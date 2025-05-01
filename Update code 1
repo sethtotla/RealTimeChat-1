@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Realtime Chat App</title>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #e5ddd5;
+    }
+    .chat-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: #fff;
+    }
+    .header {
+      background-color: #075e54;
+      color: white;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header span {
+      font-size: 18px;
+    }
+    .chat-area {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      background-color: #e5ddd5;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 70px;
+    }
+    .message {
+      margin: 5px 0;
+      padding: 8px 12px;
+      border-radius: 10px;
+      max-width: 70%;
+      display: inline-block;
+      word-wrap: break-word;
+    }
+    .user1 {
+      background-color: #dcf8c6;
+      align-self: flex-start;
+    }
+    .user2 {
+      background-color: #fff;
+      align-self: flex-end;
+    }
+    .message .meta {
+      color: red;
+      font-size: 12px;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .message .text {
+      color: black;
+      font-size: 15px;
+    }
+    .input-area {
+      display: flex;
+      padding: 10px;
+      background-color: #fff;
+      border-top: 1px solid #ccc;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .input-area input {
+      flex: 1;
+      padding: 14px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      margin-right: 10px;
+    }
+    .input-area button {
+      background-color: #075e54;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 14px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #signOutButton {
+      background-color: #c62828;
+      padding: 6px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="header">
+      <span id="userLabel">Not signed in</span>
+      <div>
+        <button id="signInButton">Sign In with Google</button>
+        <button id="signOutButton" style="display:none;">Sign Out</button>
+      </div>
+    </div>
+
+    <div class="chat-area" id="chatArea"></div>
+
+    <div class="input-area">
+      <input type="text" id="messageInput" placeholder="Type a message..." />
+      <button id="sendButton">Send</button>
+    </div>
+  </div>
+
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+  apiKey: "AIzaSyA_uTB1oy0aTBoKW5R6kAmBgUZOy26SQfU",
+  authDomain: "chit-chat-3da60.firebaseapp.com",
+  projectId: "chit-chat-3da60",
+  storageBucket: "chit-chat-3da60.firebasestorage.app",
+  messagingSenderId: "380435137882",
+  appId: "1:380435137882:web:3c974637c638c792681f63"
+};
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const auth = firebase.auth();
+
+    const chatArea = document.getElementById('chatArea');
+    const input = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const signInButton = document.getElementById('signInButton');
+    const signOutButton = document.getElementById('signOutButton');
+    const userLabel = document.getElementById('userLabel');
+
+    let currentUser = null;
+
+    // Sign-In Logic
+    signInButton.onclick = () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider);
+    };
+
+    signOutButton.onclick = () => auth.signOut();
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        userLabel.textContent = "Signed in as: " + user.displayName;
+        signInButton.style.display = 'none';
+        signOutButton.style.display = 'inline-block';
+      } else {
+        currentUser = null;
+        userLabel.textContent = "Not signed in";
+        signInButton.style.display = 'inline-block';
+        signOutButton.style.display = 'none';
+      }
+    });
+
+    sendButton.addEventListener('click', sendMessage);
+    input.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    function sendMessage() {
+      const text = input.value.trim();
+      if (!text || !currentUser) return;
+
+      const now = new Date();
+      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const message = {
+        text: text,
+        time: time,
+        senderName: currentUser.displayName,
+        uid: currentUser.uid
+      };
+
+      database.ref('messages').push(message);
+      input.value = "";
+    }
+
+    // Load messages
+    database.ref('messages').on('child_added', function (snapshot) {
+      const msg = snapshot.val();
+      const isCurrentUser = currentUser && msg.uid === currentUser.uid;
+
+      const div = document.createElement('div');
+      div.className = 'message ' + (isCurrentUser ? 'user2' : 'user1');
+
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      meta.textContent = `[${msg.time}] ${msg.senderName}`;
+
+      const text = document.createElement('span');
+      text.className = 'text';
+      text.textContent = msg.text;
+
+      div.appendChild(meta);
+      div.appendChild(text);
+      chatArea.appendChild(div);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    });
+  </script>
+</body>
+</html>
